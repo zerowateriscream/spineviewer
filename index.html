@@ -3,18 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spine Viewer</title>
-  <!-- Spine Web Player CSS / JS (버전 맞춤 필요) -->
+  <title>Spine 4.2 Viewer - work_260828</title>
+  <!-- Spine Web Player 4.2 CDN -->
   <link rel="stylesheet" href="https://unpkg.com/@esotericsoftware/spine-player@4.2.*/dist/spine-player.css">
   <script src="https://unpkg.com/@esotericsoftware/spine-player@4.2.*/dist/iife/spine-player.js"></script>
   <style>
+    * { box-sizing: border-box; }
     body, html {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       background-color: #191919;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overflow: hidden;
+    }
+    /* 상단 컨트롤 UI 바 */
+    #ui-container {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+      background: rgba(30, 30, 30, 0.85);
+      padding: 8px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+    }
+    select {
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+    }
+    select:hover {
+      border-color: #666;
     }
     #player-container {
       width: 100vw;
@@ -24,17 +52,97 @@
 </head>
 <body>
 
+  <!-- UI 컨트롤 (파일 및 애니메이션 선택) -->
+  <div id="ui-container">
+    <select id="model-select"></select>
+    <select id="anim-select"></select>
+  </div>
+
   <div id="player-container"></div>
 
   <script>
-    new spine.SpinePlayer("player-container", {
-      jsonUrl: "work_260828.json",   // 업로드한 json 파일명
-      atlasUrl: "work_260828.atlas.txt", // 업로드한 atlas 파일명
-      animation: "idle",           // 재생할 기본 애니메이션 이름
-      showControls: true,          // 하단 재생바/속도/믹스 컨트롤러 표시
-      premultipliedAlpha: true,    // 알파 블렌딩 설정 (필요에 따라 true/false)
-      backgroundColor: "#191919"
+    // 1. Spine 4.2 파일 설정 (파일명: work_260828)
+    // 추후 파일이 추가되면 배열 안에 객체를 계속 추가하시면 됩니다.
+    const models = [
+      {
+        name: "work_260828",
+        skel: "work_260828.skel",   // skel 확장자를 사용하는 경우 "work_260828.skel"로 변경
+        atlas: "work_260828.atlas"
+      }
+    ];
+
+    let currentPlayer = null;
+    const modelSelect = document.getElementById("model-select");
+    const animSelect = document.getElementById("anim-select");
+
+    // 드롭다운 옵션 동적 생성
+    models.forEach((m, idx) => {
+      const opt = document.createElement("option");
+      opt.value = idx;
+      opt.textContent = m.name;
+      modelSelect.appendChild(opt);
     });
+
+    // Spine 4.2 플레이어 로드 함수
+    function loadSpineModel(index) {
+      const model = models[index];
+
+      // 기존 인스턴스 파괴 및 컨테이너 초기화
+      if (currentPlayer) {
+        currentPlayer.dispose();
+        document.getElementById("player-container").innerHTML = "";
+      }
+
+      currentPlayer = new spine.SpinePlayer("player-container", {
+        skelUrl: model.json,        // 바이너리 내보내기 시 skelUrl: model.json(파일명.skel)로 변경
+        atlasUrl: model.atlas,
+        showControls: true,         // Spine 기본 재생/속도 컨트롤바 표시
+        premultipliedAlpha: true,   // 아틀라스 텍스처 설정에 맞춰 true/false 변경
+        backgroundColor: "#191919",
+        // 모델 로드 성공 시 애니메이션 목록 자동 추출
+        success: (player) => {
+          updateAnimationList(player);
+        },
+        error: (player, reason) => {
+          console.error("Spine 모델 로드 실패:", reason);
+        }
+      });
+    }
+
+    // 애니메이션 드롭다운 목록 업데이트
+    function updateAnimationList(player) {
+      animSelect.innerHTML = "";
+      
+      const animations = player.skeleton.data.animations;
+      
+      if (animations.length > 0) {
+        animations.forEach((anim, idx) => {
+          const opt = document.createElement("option");
+          opt.value = anim.name;
+          opt.textContent = anim.name;
+          if (idx === 0) opt.selected = true; // 첫 번째 애니메이션 자동 선택
+          animSelect.appendChild(opt);
+        });
+
+        // 첫 번째 애니메이션 자동 재생
+        player.setAnimation(animations[0].name, true);
+      }
+    }
+
+    // 모델 변경 이벤트
+    modelSelect.addEventListener("change", (e) => {
+      loadSpineModel(e.target.value);
+    });
+
+    // 애니메이션 변경 이벤트
+    animSelect.addEventListener("change", (e) => {
+      if (currentPlayer) {
+        currentPlayer.setAnimation(e.target.value, true); // 반복 재생
+      }
+    });
+
+    // 초기 로드 (첫 번째 모델)
+    loadSpineModel(0);
   </script>
 
 </body>
