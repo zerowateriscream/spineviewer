@@ -61,17 +61,16 @@
   <div id="player-container"></div>
 
   <script>
-    // 1. Spine 4.2 파일 설정 (파일명: work_260828)
-    // 추후 파일이 추가되면 배열 안에 객체를 계속 추가하시면 됩니다.
+    // 1. Spine 4.2 파일 설정
     const models = [
       {
         name: "work_260828",
-        skel: "work_260828.skel",   // skel 확장자를 사용하는 경우 "work_260828.skel"로 변경
+        skel: "work_260828.skel",
         atlas: "work_260828.atlas"
-      }
+      }, // <- 여기에 쉼표(,)를 추가했습니다.
       {
         name: "orange_dream_1",
-        skel: "orange_dream_1.skel",   // 
+        skel: "orange_dream_1.skel",
         atlas: "orange_dream_1.atlas"
       }
     ];
@@ -99,10 +98,10 @@
       }
 
       currentPlayer = new spine.SpinePlayer("player-container", {
-        skelUrl: model.skel,        // 바이너리 내보내기 시 skelUrl: model.skel(파일명.skel)로 변경
+        skelUrl: model.skel,
         atlasUrl: model.atlas,
-        showControls: true,         // Spine 기본 재생/속도 컨트롤바 표시
-        premultipliedAlpha: true,   // 아틀라스 텍스처 설정에 맞춰 true/false 변경
+        showControls: true,
+        premultipliedAlpha: true,
         backgroundColor: "#191919",
         // 모델 로드 성공 시 애니메이션 목록 자동 추출
         success: (player) => {
@@ -125,7 +124,7 @@
           const opt = document.createElement("option");
           opt.value = anim.name;
           opt.textContent = anim.name;
-          if (idx === 0) opt.selected = true; // 첫 번째 애니메이션 자동 선택
+          if (idx === 0) opt.selected = true;
           animSelect.appendChild(opt);
         });
 
@@ -142,7 +141,7 @@
     // 애니메이션 변경 이벤트
     animSelect.addEventListener("change", (e) => {
       if (currentPlayer) {
-        currentPlayer.setAnimation(e.target.value, true); // 반복 재생
+        currentPlayer.setAnimation(e.target.value, true);
       }
     });
 
