@@ -5,33 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spine Web Player</title>
   
-<!-- Spine Web Player 4.2 CDN (JS/CSS 교체) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-player@4.2.00/dist/spine-player.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-player@4.2.00/dist/iife/spine-player.min.js"></script>
+  <!-- Spine Player 4.2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-player@4.2.00/dist/spine-player.css">
   
   <style>
     * { box-sizing: border-box; }
     body, html {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      background-color: transparent;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #191919;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overflow: hidden;
     }
     #ui-container {
-      position: absolute; top: 12px; left: 12px; z-index: 10;
-      display: flex; gap: 8px;
-      background: rgba(20, 20, 20, 0.8);
-      padding: 6px 10px; border-radius: 6px;
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      background: rgba(20, 20, 20, 0.85);
+      padding: 6px 10px;
+      border-radius: 6px;
       backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     select {
-      background: #2a2a2a; color: #fff;
-      border: 1px solid #444; padding: 5px 8px;
-      border-radius: 4px; font-size: 12px;
-      cursor: pointer; outline: none;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
     }
-    #player-container { width: 100vw; height: 100vh; }
+    select:hover {
+      border-color: #777;
+    }
+    #player-container {
+      width: 100vw;
+      height: 100vh;
+    }
   </style>
 </head>
 <body>
@@ -44,118 +61,114 @@
 
   <div id="player-container"></div>
 
+  <!-- Spine Player JS (스크립트 실행 직전에 로드) -->
+  <script src="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-player@4.2.00/dist/iife/spine-player.js"></script>
+
   <script>
-    // 페이지 및 external script(Spine CDN) 로드가 완전히 끝난 후 실행
-    window.addEventListener('load', () => {
-      
-      // spine 객체 로드 여부 검증
-      if (typeof spine === 'undefined') {
-        console.error("Spine 라이브러리를 불러오지 못했습니다. CDN 경로를 확인하세요.");
-        return;
+    // 1. 사용할 모델 파일명 목록 (.skel, .atlas 파일명)
+    const availableModels = [
+      "work_260828",
+      "orange_dream_1"
+    ];
+
+    let currentPlayer = null;
+    const modelSelect = document.getElementById("model-select");
+    const skinSelect = document.getElementById("skin-select");
+    const animSelect = document.getElementById("anim-select");
+
+    // URL 파라미터 읽기 (?model=파일명 & bg=투명도/색상)
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelParam = urlParams.get('model');
+    const bgParam = urlParams.get('bg') || "#191919";
+
+    // 드롭다운 초기화
+    function initModelOptions() {
+      modelSelect.innerHTML = "";
+      availableModels.forEach((modelName) => {
+        const opt = document.createElement("option");
+        opt.value = modelName;
+        opt.textContent = modelName;
+        modelSelect.appendChild(opt);
+      });
+    }
+
+    // Spine 플레이어 생성 및 설정
+    function loadSpineModel(modelName) {
+      if (currentPlayer) {
+        currentPlayer.dispose();
+        document.getElementById("player-container").innerHTML = "";
       }
 
-      const availableModels = [
-        "work_260828",
-        "orange_dream_1"
-      ];
+      modelSelect.value = modelName;
 
-      let currentPlayer = null;
-      const modelSelect = document.getElementById("model-select");
-      const skinSelect = document.getElementById("skin-select");
-      const animSelect = document.getElementById("anim-select");
+      // Spine Player 공식 인스턴스 생성
+      currentPlayer = new spine.SpinePlayer("player-container", {
+        skelUrl: `${modelName}.skel`,
+        atlasUrl: `${modelName}.atlas`,
+        showControls: true, // 하단 제어바 표시
+        premultipliedAlpha: true,
+        backgroundColor: bgParam === "transparent" ? "#00000000" : bgParam,
+        success: (player) => {
+          updateSkinList(player);
+          updateAnimationList(player);
+        },
+        error: (player, reason) => {
+          console.error(`Spine 모델 [${modelName}] 로드 실패:`, reason);
+        }
+      });
+    }
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const modelParam = urlParams.get('model');
-      const bgParam = urlParams.get('bg') || "#191919";
+    function updateSkinList(player) {
+      skinSelect.innerHTML = "";
+      const skins = player.skeleton.data.skins;
 
-      function initModelOptions() {
-        modelSelect.innerHTML = "";
-        availableModels.forEach((modelName) => {
+      if (skins && skins.length > 0) {
+        skins.forEach((skin, idx) => {
           const opt = document.createElement("option");
-          opt.value = modelName;
-          opt.textContent = modelName;
-          modelSelect.appendChild(opt);
+          opt.value = skin.name;
+          opt.textContent = skin.name;
+          if (idx === 0) opt.selected = true;
+          skinSelect.appendChild(opt);
         });
-      }
-
-      function loadSpineModel(modelName) {
-        if (currentPlayer) {
-          currentPlayer.dispose();
-          document.getElementById("player-container").innerHTML = "";
-        }
-
-        const skelUrl = `${modelName}.skel`;
-        const atlasUrl = `${modelName}.atlas`;
-
-        modelSelect.value = modelName;
-
-        currentPlayer = new spine.SpinePlayer("player-container", {
-          skelUrl: skelUrl,
-          atlasUrl: atlasUrl,
-          showControls: true,
-          premultipliedAlpha: true,
-          backgroundColor: bgParam === "transparent" ? "#00000000" : bgParam,
-          success: (player) => {
-            updateSkinList(player);
-            updateAnimationList(player);
-          },
-          error: (player, reason) => {
-            console.error(`Spine 모델 [${modelName}] 로드 실패:`, reason);
-          }
-        });
-      }
-
-      function updateSkinList(player) {
-        skinSelect.innerHTML = "";
-        const skins = player.skeleton.data.skins;
-
-        if (skins && skins.length > 0) {
-          skins.forEach((skin, idx) => {
-            const opt = document.createElement("option");
-            opt.value = skin.name;
-            opt.textContent = skin.name;
-            if (idx === 0) opt.selected = true;
-            skinSelect.appendChild(opt);
-          });
-          skinSelect.style.display = "block";
-        } else {
-          skinSelect.style.display = "none";
-        }
-      }
-
-      function updateAnimationList(player) {
-        animSelect.innerHTML = "";
-        const animations = player.skeleton.data.animations;
-
-        if (animations && animations.length > 0) {
-          animations.forEach((anim, idx) => {
-            const opt = document.createElement("option");
-            opt.value = anim.name;
-            opt.textContent = anim.name;
-            if (idx === 0) opt.selected = true;
-            animSelect.appendChild(opt);
-          });
-
-          player.animation = animations[0].name;
-        }
-      }
-
-      modelSelect.addEventListener("change", (e) => loadSpineModel(e.target.value));
-      skinSelect.addEventListener("change", (e) => {
-        if (currentPlayer) currentPlayer.setSkin(e.target.value);
-      });
-      animSelect.addEventListener("change", (e) => {
-        if (currentPlayer) currentPlayer.animation = e.target.value;
-      });
-
-      initModelOptions();
-
-      if (modelParam && availableModels.includes(modelParam)) {
-        loadSpineModel(modelParam);
+        skinSelect.style.display = "block";
       } else {
-        loadSpineModel(availableModels[0]);
+        skinSelect.style.display = "none";
       }
+    }
+
+    function updateAnimationList(player) {
+      animSelect.innerHTML = "";
+      const animations = player.skeleton.data.animations;
+
+      if (animations && animations.length > 0) {
+        animations.forEach((anim, idx) => {
+          const opt = document.createElement("option");
+          opt.value = anim.name;
+          opt.textContent = anim.name;
+          if (idx === 0) opt.selected = true;
+          animSelect.appendChild(opt);
+        });
+
+        player.animation = animations[0].name;
+      }
+    }
+
+    // 드롭다운 변경 이벤트
+    modelSelect.addEventListener("change", (e) => loadSpineModel(e.target.value));
+    
+    skinSelect.addEventListener("change", (e) => {
+      if (currentPlayer) currentPlayer.setSkin(e.target.value);
     });
+
+    animSelect.addEventListener("change", (e) => {
+      if (currentPlayer) currentPlayer.animation = e.target.value;
+    });
+
+    // 앱 시작
+    initModelOptions();
+
+    const targetModel = (modelParam && availableModels.includes(modelParam)) ? modelParam : availableModels[0];
+    loadSpineModel(targetModel);
   </script>
 
 </body>
