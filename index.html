@@ -40,15 +40,11 @@
         return;
       }
 
-      const availableModels = [
-        "work_260828",
-        "orange_dream_1"
-      ];
-
       let currentPlayer = null;
 
       const urlParams = new URLSearchParams(window.location.search);
-      const modelParam = urlParams.get('model');
+      // URL 파라미터가 없으면 기본값으로 'work_260828' 로드
+      const modelParam = urlParams.get('model') || "work_260828";
       const bgParam = urlParams.get('bg') || "#191919";
 
       function loadSpineModel(modelName) {
@@ -57,21 +53,29 @@
           document.getElementById("player-container").innerHTML = "";
         }
 
+        const isTransparent = bgParam.toLowerCase() === "transparent";
+        const backgroundColor = isTransparent ? "#00000000" : bgParam;
+
         currentPlayer = new spine.SpinePlayer("player-container", {
           skelUrl: `${modelName}.skel`,
           atlasUrl: `${modelName}.atlas`,
-          showControls: true, // 하단 재생 바를 제거하려면 false로 설정
+          showControls: true,
           premultipliedAlpha: true,
-          backgroundColor: bgParam === "transparent" ? "#00000000" : bgParam,
+          alpha: isTransparent,
+          backgroundColor: backgroundColor,
+          viewport: {
+            padLeft: "5%",
+            padRight: "5%",
+            padTop: "5%",
+            padBottom: "5%"
+          },
           error: (player, reason) => {
             console.error(`Spine 모델 [${modelName}] 로드 실패:`, reason);
           }
         });
       }
 
-      // URL 매개변수의 model 값이 유효하면 지정된 모델을, 없으면 첫 번째 모델을 로드
-      const targetModel = (modelParam && availableModels.includes(modelParam)) ? modelParam : availableModels[0];
-      loadSpineModel(targetModel);
+      loadSpineModel(modelParam);
     });
   </script>
 
